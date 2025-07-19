@@ -45,41 +45,30 @@ export const CodeSearchForm = () => {
     setIsLoading(true);
     
     try {
-      // Mock API call - replace with your actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-      
-      // For demo purposes, using the provided sample data
-      const mockResponse: SearchResponse = {
-        keyword: keyword,
-        matches: [
-          {
-            file: "src/main/java/com/kapture/mainserverreports/enums/GenericTemplate/InternalOrderReport.java",
-            repo: "mainserverreports",
-            explanation: "This code appears to generate a report in CSV format by taking in reportRequest data. The keyword is used to fetch value from cache service. If this value exists and is not empty, it's transformed into a JSON object."
-          },
-          {
-            file: "src/main/java/com/kapture/mainserverreports/service/GoDownStockReportService.java",
-            repo: "mainserverreports",
-            explanation: "This code performs a series of operations related to getting certain attributes using the keyword. For an employee's address, it gets zone IDs based on a provided attribute and its value."
-          },
-          {
-            file: "src/main/java/com/kapture/kapturereport/generator/TicketReport.java",
-            repo: "kapture-report",
-            explanation: "The code is primarily fetching information from a report request and processing it based on conditions. The keyword is used to fetch a string from cache, representing various IDs."
-          },
-          {
-            summary: "This keyword serves as an important identifier for pinpointing, extracting, and processing certain valuable pieces of identification data across the codebase.",
-            repo: "mainserverreports"
-          }
-        ]
-      };
+      const response = await fetch('http://localhost:8081/analyze/v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pr: keyword,
+          force: "false"
+        })
+      });
 
-      setSearchResults(mockResponse);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: SearchResponse = await response.json();
+      setSearchResults(data);
+      
       toast({
         title: "Search Complete",
-        description: `Found ${mockResponse.matches.length} matches for "${keyword}"`,
+        description: `Found ${data.matches.length} matches for "${keyword}"`,
       });
     } catch (error) {
+      console.error('Search error:', error);
       toast({
         title: "Search Failed",
         description: "An error occurred while searching. Please try again.",
