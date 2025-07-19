@@ -24,6 +24,7 @@ const REPOSITORIES = [
   "kapture-report",
   "streamlineservice",
   "ticket-history-analytics",
+  "adjetter_main",
   "all-repositories"
 ];
 
