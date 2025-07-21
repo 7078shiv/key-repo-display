@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, FileText, GitBranch, Loader2 } from "lucide-react";
+import { Search, FileText, GitBranch, Loader2, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 interface Match {
   file?: string;
   repo: string;
+  code?: string;
   explanation?: string;
   summary?: string;
+  DevDescriptionSummary?: string;
 }
 
 interface SearchResponse {
@@ -20,19 +22,122 @@ interface SearchResponse {
 }
 
 const REPOSITORIES = [
+  "adjetter_main",
   "mainserverreports",
   "kapture-report",
   "streamlineservice",
   "ticket-history-analytics",
-  "adjetter_main",
+  "kapture-dashboard",
   "all-repositories"
 ];
+
+// Code Popup Modal Component
+const CodePopup = ({ match, isOpen, onClose }: { match: Match | null, isOpen: boolean, onClose: () => void }) => {
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const handleCopy = async () => {
+    if (match?.code) {
+      try {
+        await navigator.clipboard.writeText(match.code);
+        setCopied(true);
+        toast({
+          title: "Code Copied",
+          description: "Code has been copied to clipboard",
+        });
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        toast({
+          title: "Copy Failed",
+          description: "Failed to copy code to clipboard",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  if (!isOpen || !match) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-info" />
+            <h3 className="text-lg font-semibold text-foreground">{match.repo}</h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            {match.code && (
+              <Button
+                onClick={handleCopy}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    <span>Copy</span>
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-4">
+          {match.file && (
+            <div className="mb-4">
+              <Label className="text-sm font-medium text-muted-foreground">File Path:</Label>
+              <p className="text-sm font-mono text-foreground bg-muted/50 p-2 rounded-md mt-1 break-all">
+                {match.file}
+              </p>
+            </div>
+          )}
+          
+          {match.code ? (
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Code:</Label>
+              <div className="mt-2">
+                <pre className="bg-muted/50 p-4 rounded-lg overflow-auto text-sm font-mono whitespace-pre-wrap">
+                  <code>{match.code}</code>
+                </pre>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No code content available for this match</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const CodeSearchForm = () => {
   const [keyword, setKeyword] = useState("");
   const [selectedRepo, setSelectedRepo] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSearch = async () => {
@@ -87,6 +192,16 @@ export const CodeSearchForm = () => {
     if (e.key === "Enter") {
       handleSearch();
     }
+  };
+
+  const handleRepoClick = (match: Match) => {
+    setSelectedMatch(match);
+    setIsPopupOpen(true);
+  };
+
+  const closePopup = () => {
+    setIsPopupOpen(false);
+    setSelectedMatch(null);
   };
 
   return (
@@ -183,7 +298,12 @@ export const CodeSearchForm = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4 text-info" />
-                          <span className="text-sm font-medium text-info">{match.repo}</span>
+                          <button
+                            onClick={() => handleRepoClick(match)}
+                            className="text-sm font-medium text-info hover:text-info/80 hover:underline cursor-pointer transition-colors"
+                          >
+                            {match.repo}
+                          </button>
                         </div>
                       </div>
                       
@@ -200,8 +320,14 @@ export const CodeSearchForm = () => {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
                         <div className="h-2 w-2 bg-success rounded-full"></div>
-                        <span className="text-sm font-medium text-success">Summary - {match.repo}</span>
+                        <button
+                          onClick={() => handleRepoClick(match)}
+                          className="text-sm font-medium text-success hover:text-success/80 hover:underline cursor-pointer transition-colors"
+                        >
+                          Summary - {match.repo}
+                        </button>
                       </div>
+                    
                       <p className="text-sm text-foreground leading-relaxed font-medium bg-success/10 p-3 rounded-md">
                         {match.summary}
                       </p>
@@ -213,6 +339,13 @@ export const CodeSearchForm = () => {
           </div>
         </div>
       )}
+
+      {/* Code Popup Modal */}
+      <CodePopup 
+        match={selectedMatch} 
+        isOpen={isPopupOpen} 
+        onClose={closePopup} 
+      />
     </div>
   );
 };
