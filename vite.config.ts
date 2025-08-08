@@ -8,7 +8,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: ["key-repo-display-1.onrender.com"],
   },
   plugins: [
     react(),
